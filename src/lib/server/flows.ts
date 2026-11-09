@@ -161,11 +161,12 @@ export async function setClaim(opts: {
   const { session, participantId, itemId, quantity } = opts;
   const { data: item } = await db()
     .from("receipt_items")
-    .select("id")
+    .select("id, quantity")
     .eq("id", itemId)
     .eq("session_id", session.id)
     .maybeSingle();
   if (!item) throw new HttpError(404, "Position nicht gefunden");
+  if (quantity > item.quantity + 1e-6) throw new HttpError(400, "So oft steht das nicht auf dem Bon.");
   if (quantity <= 0) {
     const { error } = await db().from("claims").delete().eq("item_id", itemId).eq("participant_id", participantId);
     if (error) throw error;
@@ -431,16 +432,25 @@ export async function answerQuestion(opts: {
     .update({ question_status: "answered", meta: { ...question.meta, answer_label: option.label } })
     .eq("id", question.id);
 
-  if (option.assignments.length) {
+  // Positionen könnten inzwischen gelöscht/ersetzt worden sein (neuer Bon) → nur noch existierende verwenden
+  const { data: existing } = await db()
+    .from("receipt_items")
+    .select("id")
+    .eq("session_id", session.id)
+    .in("id", option.assignments.map((a) => a.item_id));
+  const valid = new Set((existing ?? []).map((r) => r.id));
+  const assignments = option.assignments.filter((a) => valid.has(a.item_id));
+  if (assignments.length) {
+    // Bewusste Antwort der Person → "manual", damit "Neu zuordnen" sie nicht wieder überschreibt
     const { error } = await db()
       .from("claims")
       .upsert(
-        option.assignments.map((a) => ({
+        assignments.map((a) => ({
           session_id: session.id,
           participant_id: target,
           item_id: a.item_id,
           quantity: a.quantity,
-          source: "ai" as const,
+          source: "manual" as const,
         })),
         { onConflict: "item_id,participant_id" },
       );
@@ -477,8 +487,14 @@ export async function processReceipt(sessionId: string): Promise<void> {
       return;
     }
 
-    // Alte Positionen (und damit Claims) ersetzen
+    // Alte Positionen (und damit Claims) ersetzen; Rückfragen zum alten Bon schließen
     await db().from("receipt_items").delete().eq("session_id", sessionId);
+    await db()
+      .from("messages")
+      .update({ question_status: "dismissed" })
+      .eq("session_id", sessionId)
+      .eq("kind", "question")
+      .eq("question_status", "open");
     const rows = result.items.map((it, i) => ({
       session_id: sessionId,
       position: i,

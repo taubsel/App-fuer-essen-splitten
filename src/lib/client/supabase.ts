@@ -26,8 +26,13 @@ export async function accessToken(): Promise<string> {
     return session.access_token;
   }
   if (session) {
-    const { data: refreshed } = await supabase().auth.refreshSession();
+    // Wichtig: nicht einfach neu anmelden – sonst wäre man plötzlich eine andere Person in der Runde
+    const { data: refreshed, error } = await supabase().auth.refreshSession();
     if (refreshed.session) return refreshed.session.access_token;
+    const msg = error?.message ?? "";
+    if (!/refresh token|invalid|not found|expired/i.test(msg)) {
+      throw new Error("Keine Verbindung – bitte gleich nochmal versuchen.");
+    }
   }
   if (!pending) {
     pending = supabase()

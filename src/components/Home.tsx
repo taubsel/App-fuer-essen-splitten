@@ -47,7 +47,11 @@ export function Home() {
         localStorage.setItem(NAME_KEY, name.trim());
       } catch {}
       const res = await api<{ code: string }>("/api/sessions", {
-        body: { name, title, tipPercent: tip.replace(",", ".") },
+        body: {
+          name,
+          title: title.trim() || `Essen am ${new Date().toLocaleDateString("de-DE", { day: "numeric", month: "numeric" })}`,
+          tipPercent: tip.replace(",", "."),
+        },
       });
       router.push(`/s/${res.code}?neu=1`);
     } catch (err) {
