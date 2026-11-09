@@ -1,7 +1,7 @@
 import { after } from "next/server";
 import { processUserMessage } from "@/lib/server/flows";
 import { handler, readJson, str } from "@/lib/server/http";
-import { assertNotClosed, notify, postMessage, requireMember } from "@/lib/server/session";
+import { assertNotClosed, notify, postMessage, rateLimit, requireMember } from "@/lib/server/session";
 
 type Ctx = { params: Promise<{ code: string }> };
 export const maxDuration = 120;
@@ -11,6 +11,7 @@ export const POST = handler<Ctx>(async (req, ctx) => {
   const { code } = await ctx.params;
   const { session, me } = await requireMember(req, code);
   assertNotClosed(session);
+  await rateLimit(me.id, { max: 12 });
   const body = await readJson(req);
   const text = str(body.body, "Nachricht", { max: 1000 });
   const message = await postMessage({

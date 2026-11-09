@@ -25,11 +25,18 @@ export function ChatTab() {
     return map;
   }, [state.notes]);
 
-  const lastId = state.messages.at(-1)?.id;
+  // Automatisch nach unten scrollen – außer man liest gerade weiter oben
+  const last = state.messages.at(-1);
+  const stickToBottom = useRef(true);
   useLayoutEffect(() => {
     const el = listRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [lastId]);
+    if (!el) return;
+    if (stickToBottom.current || last?.participant_id === state.me.id) el.scrollTop = el.scrollHeight;
+  }, [last?.id, last?.participant_id, state.me.id]);
+  const onScroll = () => {
+    const el = listRef.current;
+    if (el) stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+  };
 
   const aiThinking = state.messages.some((m) => m.ai_status === "pending");
 
@@ -54,7 +61,7 @@ export function ChatTab() {
 
   return (
     <div className="flex h-full flex-col">
-      <div ref={listRef} className="flex-1 overflow-y-auto px-3 py-4">
+      <div ref={listRef} onScroll={onScroll} className="flex-1 overflow-y-auto px-3 py-4">
         <div className="flex flex-col gap-2.5">
           {state.messages.map((m) => (
             <MessageView key={m.id} message={m} notes={notesByMessage.get(m.id) ?? []} />
@@ -81,6 +88,7 @@ export function ChatTab() {
             capture="environment"
             className="hidden"
             onChange={(e) => void sendPhoto(e.target.files)}
+            data-testid="photo-input"
           />
           <button
             type="button"
@@ -113,7 +121,7 @@ export function ChatTab() {
             }}
             rows={1}
             maxLength={1000}
-            placeholder={state.items.length ? "Was hattest du? Oder antworte der KI…" : "Was hattest du? z. B. „2 Mythos, Gyros“"}
+            placeholder={state.items.length ? "Was hattest du? Oder antworte…" : "Was hattest du?"}
             className="max-h-32 min-h-11 flex-1 resize-none rounded-2xl bg-zinc-100 px-4 py-2.5 outline-none placeholder:text-zinc-400 focus:bg-white focus:ring-2 focus:ring-brand-500"
           />
           <button
@@ -336,6 +344,22 @@ function PhotoMessage({ message: m, mine }: { message: MessageRow; mine: boolean
             </div>
           </div>
         )}
+        {shown.some((d) => d.box && d.selected) && status !== "analyzing" && (
+          // Spotlight: alles außer den ausgewählten Speisen abdunkeln (wie beim Freistellen in iOS)
+          <svg className="pointer-events-none absolute inset-0 size-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
+            <defs>
+              <mask id={`spot-${m.id}`}>
+                <rect width="100" height="100" fill="white" />
+                {shown.map((d, i) =>
+                  d.box && d.selected ? (
+                    <rect key={i} x={d.box.x * 100} y={d.box.y * 100} width={d.box.w * 100} height={d.box.h * 100} rx="3" fill="black" />
+                  ) : null,
+                )}
+              </mask>
+            </defs>
+            <rect width="100" height="100" fill="rgba(0,0,0,0.5)" mask={`url(#spot-${m.id})`} className="transition-all" />
+          </svg>
+        )}
         {shown.map((d, i) =>
           d.box ? (
             <button
@@ -345,8 +369,8 @@ function PhotoMessage({ message: m, mine }: { message: MessageRow; mine: boolean
               className={cx(
                 "absolute rounded-xl border-2 transition",
                 d.selected
-                  ? "border-white bg-white/10 shadow-[0_0_0_2px_rgba(47,111,223,0.9),0_0_24px_rgba(47,111,223,0.6)]"
-                  : "border-dashed border-white/60 bg-black/45",
+                  ? "border-white shadow-[0_0_0_2px_rgba(47,111,223,0.9),0_0_24px_rgba(47,111,223,0.6)]"
+                  : "border-dashed border-white/50",
               )}
               style={{
                 left: `${d.box.x * 100}%`,

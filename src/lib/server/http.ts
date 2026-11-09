@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_rethrow } from "next/navigation";
 
 export class HttpError extends Error {
   constructor(
@@ -23,6 +24,7 @@ export function handler<C>(fn: (req: Request, ctx: C) => Promise<Response>) {
     try {
       return await fn(req, ctx);
     } catch (err) {
+      unstable_rethrow(err); // interne Next.js-Signale (z. B. Prerender-Abbruch) nicht verschlucken
       return jsonError(err);
     }
   };

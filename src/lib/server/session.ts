@@ -135,7 +135,7 @@ export async function loadState(sessionId: string, me: ParticipantRow): Promise<
   const photoMessages = raw.messages.filter((m) => m.image_path);
   const paths = [...photoMessages.map((m) => m.image_path as string), ...raw.session.receipt_images];
   const photoUrls: Record<string, string> = {};
-  let receiptUrls: string[] = [];
+  const receiptUrls: Record<string, string> = {};
   if (paths.length > 0) {
     const { data, error } = await db.storage.from("photos").createSignedUrls(paths, SIGNED_URL_TTL);
     if (!error && data) {
@@ -144,7 +144,10 @@ export async function loadState(sessionId: string, me: ParticipantRow): Promise<
         const url = byPath.get(m.image_path as string);
         if (url) photoUrls[m.id] = url;
       }
-      receiptUrls = raw.session.receipt_images.map((p) => byPath.get(p)).filter(Boolean) as string[];
+      for (const p of raw.session.receipt_images) {
+        const url = byPath.get(p);
+        if (url) receiptUrls[p] = url;
+      }
     }
   }
 
@@ -166,7 +169,8 @@ export async function notify(sessionId: string): Promise<void> {
       method: "POST",
       headers: {
         apikey: env.supabaseServiceKey,
-        Authorization: `Bearer ${env.supabaseServiceKey}`,
+        // Neue Supabase-Keys (sb_secret_…) sind keine JWTs und gehören nur in den apikey-Header
+        ...(env.supabaseServiceKey.startsWith("eyJ") ? { Authorization: `Bearer ${env.supabaseServiceKey}` } : {}),
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -197,6 +201,22 @@ export async function postMessage(input: {
   const { data, error } = await supabaseAdmin().from("messages").insert(input).select("*").single();
   if (error) throw error;
   return data as MessageRow;
+}
+
+/**
+ * Einfaches Limit gegen versehentliches Spammen (schützt das OpenAI-Budget):
+ * höchstens `max` eigene Nachrichten der gewünschten Art in den letzten 60 Sekunden.
+ */
+export async function rateLimit(participantId: string, opts: { max: number; photos?: boolean }) {
+  let q = supabaseAdmin()
+    .from("messages")
+    .select("id", { count: "exact", head: true })
+    .eq("participant_id", participantId)
+    .gte("created_at", new Date(Date.now() - 60_000).toISOString());
+  q = opts.photos ? q.not("image_path", "is", null) : q.is("image_path", null);
+  const { count, error } = await q;
+  if (error) throw error;
+  if ((count ?? 0) >= opts.max) throw new HttpError(429, "Langsam 🙂 – kurz warten und dann nochmal.");
 }
 
 /** Bestätigung zurücksetzen, wenn sich die Positionen einer Person ändern. */

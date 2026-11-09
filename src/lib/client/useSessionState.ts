@@ -16,6 +16,7 @@ export function useSessionState(code: string) {
   const [status, setStatus] = useState<LoadStatus>("loading");
   const [error, setError] = useState<string | null>(null);
   const inflight = useRef(false);
+  const urlCache = useRef(new Map<string, { url: string; at: number }>());
   const again = useRef(false);
 
   const refresh = useCallback(async () => {
@@ -28,6 +29,8 @@ export function useSessionState(code: string) {
       do {
         again.current = false;
         const data = await api<SessionState>(`/api/sessions/${code}/state`);
+        data.photoUrls = stableUrls(urlCache.current, data.photoUrls);
+        data.receiptUrls = stableUrls(urlCache.current, data.receiptUrls);
         setState(data);
         setStatus("ready");
         setError(null);
@@ -77,4 +80,23 @@ export function useSessionState(code: string) {
   }, [sessionId, refresh]);
 
   return { state, status, error, refresh };
+}
+
+/**
+ * Signierte Foto-URLs ändern sich bei jedem Abruf. Damit Bilder nicht bei jedem Live-Update neu
+ * geladen werden, behalten wir eine URL, solange sie sicher noch gültig ist (Server: 60 min).
+ */
+function stableUrls(cache: Map<string, { url: string; at: number }>, fresh: Record<string, string>) {
+  const now = Date.now();
+  const out: Record<string, string> = {};
+  for (const [key, url] of Object.entries(fresh)) {
+    const cached = cache.get(key);
+    if (cached && now - cached.at < 45 * 60_000) {
+      out[key] = cached.url;
+    } else {
+      cache.set(key, { url, at: now });
+      out[key] = url;
+    }
+  }
+  return out;
 }

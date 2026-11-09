@@ -97,9 +97,9 @@ export function ReceiptTab() {
               {items.length} Positionen · {Math.round(settlement.progress * 100)} % zugeordnet
             </div>
           </div>
-          {state.receiptUrls.length > 0 && (
+          {Object.keys(state.receiptUrls).length > 0 && (
             <div className="flex -space-x-3">
-              {state.receiptUrls.map((u, i) => (
+              {Object.values(state.receiptUrls).map((u, i) => (
                 <a key={i} href={u} target="_blank" rel="noreferrer" className="block size-12 overflow-hidden rounded-lg ring-2 ring-white">
                   {/* eslint-disable-next-line @next/next/no-img-element -- signierte Supabase-URL */}
                   <img src={u} alt={`Bon ${i + 1}`} className="size-full object-cover" />

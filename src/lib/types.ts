@@ -122,6 +122,6 @@ export interface SessionState {
   me: ParticipantRow;
   /** Kurzlebige, signierte URLs für Fotos (message_id → URL) */
   photoUrls: Record<string, string>;
-  /** Signierte URLs der Kassenzettel-Fotos */
-  receiptUrls: string[];
+  /** Signierte URLs der Kassenzettel-Fotos (Pfad → URL) */
+  receiptUrls: Record<string, string>;
 }
