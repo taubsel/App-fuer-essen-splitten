@@ -121,7 +121,7 @@ export function ChatTab() {
             }}
             rows={1}
             maxLength={1000}
-            placeholder={state.items.length ? "Was hattest du? Oder antworte…" : "Was hattest du?"}
+            placeholder="Was hattest du?"
             className="max-h-32 min-h-11 flex-1 resize-none rounded-2xl bg-zinc-100 px-4 py-2.5 outline-none placeholder:text-zinc-400 focus:bg-white focus:ring-2 focus:ring-brand-500"
           />
           <button
@@ -259,6 +259,9 @@ function QuestionCard({ message: m }: { message: MessageRow }) {
     <div className="flex items-end gap-2">
       <AiAvatar />
       <div
+        data-testid="question"
+        data-open={open ? "1" : "0"}
+        data-for-me={forMe ? "1" : "0"}
         className={cx(
           "max-w-[85%] rounded-2xl rounded-bl-md px-3.5 py-2.5 text-[15px]",
           open && forMe ? "bg-amber-50 ring-2 ring-amber-300" : "bg-white ring-1 ring-zinc-100",

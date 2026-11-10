@@ -56,6 +56,8 @@ Ohne OpenAI-Guthaben: `AI_MOCK=1` in `.env.local` setzen – dann antwortet eine
 npm test          # Unit-Tests (Rechenlogik)
 npm run test:e2e  # Playwright: 3 Personen spielen eine komplette Runde durch (mit simulierter KI)
 npm run eval:ai   # prüft die ECHTE KI mit griechischem Beispiel-Bon, Chat-Beispielen und Tellerfoto (kostet ein paar Cent)
+# kompletter Abend mit echter KI im Browser (App vorher mit AI_MOCK=0 auf Port 3001 starten):
+E2E_REAL_AI=1 E2E_BASE_URL=http://localhost:3001 npx playwright test e2e/real-ai.spec.ts
 node scripts/check-openai.mjs  # kurzer Test, ob OpenAI-Key + Guthaben funktionieren
 npm run typecheck && npm run lint
 ```

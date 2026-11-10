@@ -66,7 +66,19 @@ Manuelle Zuordnungen und „Rest verteilen“ werden von der KI nie überschrieb
 | 3 | KI-Zuordnung, Rückfragen mit Buttons, Freitext-Antworten, Überbuchung erkennen | ✅ |
 | 4 | Meine Positionen, Teilen, Trinkgeld, Host-Übersicht, Rest verteilen, Zusammenfassung | ✅ |
 | 5 | Tellerfoto: KI markiert Speisen, Abwählen per Tipp, Spotlight | ✅ |
-| 6 | Tests (Unit, E2E mit 3 Personen, KI-Eval), Doku, Online stellen | ✅ Code · ⏳ Deployment (siehe SETUP.md) |
+| 6 | Tests (Unit, E2E mit 3 Personen, KI-Eval, Abend mit echter KI), Doku, Online stellen | ✅ Code & echte KI getestet · ⏳ Deployment (siehe SETUP.md) |
+
+### Ergebnisse mit echter KI (gpt-5.5 / gpt-5.4-mini)
+
+| Aufgabe | Ergebnis | Dauer |
+| --- | --- | --- |
+| Griechischen Bon lesen | 7/7 Positionen, Summe 75,50 € korrekt, gute Übersetzungen | ~8 s |
+| Chat verstehen (Mengen, Größe, Geteiltes, Korrektur, „für andere“) | alles korrekt | 1–2 s |
+| Zuordnung mit Rückfrage zur Biergröße | korrekt, berücksichtigt schon vergebene Mengen | ~11 s |
+| Überbuchung (6 angegeben, 4 auf dem Bon) | nichts doppelt vergeben, Rückfrage an alle Beteiligten | ~12 s |
+| Freitext-Antwort („die kleinen“) | korrekt | ~2 s |
+| Tellerfoto | eigener Teller erkannt, Box sitzt, fremde Pommes ausgeschlossen | ~3 s |
+| Kompletter Abend, 3 Personen, im Browser | Beträge centgenau, Summe = Rechnung + Trinkgeld | 34 s gesamt |
 
 ## Ideen für später
 
