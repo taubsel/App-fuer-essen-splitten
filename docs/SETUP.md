@@ -1,5 +1,8 @@
 # Online stellen (ca. 10 Minuten)
 
+> **Stand:** Die App läuft unter **https://tischrechnung.vercel.app** (Vercel-Projekt `tischrechnung`, Supabase-Projekt
+> `qjtsrdqoxczhvfrwrlqz` in Irland). Die Anleitung unten beschreibt, wie man das von Grund auf neu aufsetzt.
+
 Du brauchst drei Dinge: **Supabase** (Datenbank + Login), **Vercel** (Hosting) und deinen **OpenAI-Key** mit etwas Guthaben.
 Alles läuft im kostenlosen Tarif – nur OpenAI kostet ein paar Cent pro Abend.
 

@@ -1,0 +1,9 @@
+# Lokale Umgebungsdateien NIE hochladen (enthalten u. a. AI_MOCK=1 und lokale Schlüssel)
+.env*
+!.env.example
+node_modules
+.next
+test-results
+playwright-report
+supabase/.temp
+supabase/.branches
