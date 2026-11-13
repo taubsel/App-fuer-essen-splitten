@@ -105,3 +105,40 @@ test("komplette Runde: erstellen, beitreten, notieren, Bon, Rückfrage, Abrechnu
   await expect(host.getByText("hat die Runde abgeschlossen").first()).toBeVisible({ timeout: 10_000 }).catch(() => {});
   await expect(host.getByRole("button", { name: "Runde wieder öffnen" })).toBeVisible();
 });
+
+test("Host kann eine Runde ohne Bon beenden, wieder öffnen und löschen", async ({ browser }) => {
+  const host = await newPerson(browser);
+  await host.goto("/");
+  await host.getByRole("button", { name: "Neue Runde starten" }).click();
+  await host.getByPlaceholder("z. B. Julian").fill("Julian");
+  await host.getByPlaceholder("z. B. Taverna Nikos").fill("Wird gelöscht");
+  await host.getByRole("button", { name: "Runde starten" }).click();
+  const code = (await host.locator("div.tracking-\\[0\\.25em\\]").textContent())!.trim();
+  await host.getByRole("button", { name: "Schließen" }).click();
+
+  const guest = await newPerson(browser);
+  await guest.goto(`/s/${code}`);
+  await guest.getByPlaceholder("Dein Name").fill("Gast");
+  await guest.getByRole("button", { name: "Beitreten" }).click();
+  await expect(host.getByText("Gast ist dabei")).toBeVisible();
+
+  // Ein Foto, das beim Löschen mit entfernt werden muss
+  await guest.getByTestId("photo-input").setInputFiles(path.join(__dirname, "fixtures", "plate.jpg"));
+  await expect(guest.getByAltText("Tellerfoto")).toBeVisible();
+
+  // Beenden ohne Kassenzettel
+  host.on("dialog", (d) => d.accept());
+  await host.getByRole("button", { name: "Host" }).click();
+  await host.getByRole("button", { name: "Runde beenden" }).click();
+  await expect(host.getByRole("button", { name: "Runde wieder öffnen" })).toBeVisible();
+  await expect(guest.getByText("Julian hat die Runde beendet.")).toBeVisible();
+  await host.getByRole("button", { name: "Runde wieder öffnen" }).click();
+  await expect(host.getByRole("button", { name: "Runde beenden" })).toBeVisible();
+
+  // Löschen
+  await host.getByRole("button", { name: "Runde löschen" }).click();
+  await expect(host).toHaveURL(/\/$/);
+  await expect(host.getByText("Runde gelöscht")).toBeVisible();
+  await expect(host.getByText("Wird gelöscht")).toBeHidden();
+  await expect(guest.getByText("der Host hat sie gelöscht")).toBeVisible({ timeout: 25_000 });
+});

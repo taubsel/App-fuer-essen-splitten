@@ -48,14 +48,46 @@ export const PATCH = handler<Ctx>(async (req, ctx) => {
     });
   }
   if (update.status === "closed" && session.status !== "closed") {
+    const { count } = await supabaseAdmin()
+      .from("receipt_items")
+      .select("id", { count: "exact", head: true })
+      .eq("session_id", session.id);
     await postMessage({
       session_id: session.id,
       kind: "system",
-      body: `✅ ${me.name} hat die Runde abgeschlossen. Schaut unter „Ich“, was ihr überweisen müsst${
-        session.receipt_total ? ` (Rechnung gesamt ${formatMoney(session.receipt_total)})` : ""
-      }.`,
+      body: count
+        ? `✅ ${me.name} hat die Runde abgeschlossen. Schaut unter „Ich“, was ihr überweisen müsst${
+            session.receipt_total ? ` (Rechnung gesamt ${formatMoney(session.receipt_total)})` : ""
+          }.`
+        : `${me.name} hat die Runde beendet.`,
     });
   }
+  if (update.status && update.status !== "closed" && session.status === "closed") {
+    await postMessage({ session_id: session.id, kind: "system", body: `${me.name} hat die Runde wieder geöffnet.` });
+  }
   await notify(session.id);
+  return Response.json({ ok: true });
+});
+
+/** Runde endgültig löschen (Host): alle Nachrichten, Positionen, Zuordnungen und Fotos. */
+export const DELETE = handler<Ctx>(async (req, ctx) => {
+  const { code } = await ctx.params;
+  const { session } = await requireHost(req, code);
+  const db = supabaseAdmin();
+
+  // Fotos aus dem Speicher entfernen (Ordner = Session-ID)
+  for (;;) {
+    const { data: files, error } = await db.storage.from("photos").list(session.id, { limit: 100 });
+    if (error) throw error;
+    if (!files?.length) break;
+    const { error: rmError } = await db.storage.from("photos").remove(files.map((f) => `${session.id}/${f.name}`));
+    if (rmError) throw rmError;
+    if (files.length < 100) break;
+  }
+
+  // Alles andere hängt per ON DELETE CASCADE an der Session
+  const { error } = await db.from("sessions").delete().eq("id", session.id);
+  if (error) throw error;
+  await notify(session.id); // die anderen Geräte merken beim nächsten Laden, dass die Runde weg ist
   return Response.json({ ok: true });
 });

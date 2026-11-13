@@ -30,7 +30,9 @@ export function SessionApp({ code }: { code: string }) {
       <Centered>
         <p className="text-4xl">🤷</p>
         <h1 className="text-xl font-semibold">Runde nicht gefunden</h1>
-        <p className="text-zinc-600">Der Code {code} existiert nicht. Vertippt?</p>
+        <p className="text-zinc-600">
+          Die Runde {code} gibt es nicht (mehr) – entweder vertippt, oder der Host hat sie gelöscht.
+        </p>
         <Link href="/" className="font-medium text-brand-700">
           Zur Startseite
         </Link>

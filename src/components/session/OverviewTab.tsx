@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { formatMoney, formatQty } from "@/lib/calc";
 import { Avatar, Badge, Button, Card, Sheet, TextInput, cx, useToast } from "../ui";
@@ -11,6 +12,8 @@ export function OverviewTab() {
   const { session, participants, items, claims } = state;
   const [splitOpen, setSplitOpen] = useState(false);
   const [tipOpen, setTipOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const router = useRouter();
   const closed = session.status === "closed";
   const host = participants.find((p) => p.is_host);
 
@@ -100,21 +103,49 @@ export function OverviewTab() {
                 Zusammenfassung
               </Button>
               {closed ? (
-                <Button variant="secondary" className="col-span-2" onClick={() => call("", { method: "PATCH", body: { status: "assigning" } })}>
+                <Button
+                  variant="secondary"
+                  className="col-span-2"
+                  onClick={() => call("", { method: "PATCH", body: { status: items.length ? "assigning" : "open" } })}
+                >
                   Runde wieder öffnen
                 </Button>
               ) : (
                 <Button
                   className="col-span-2"
-                  disabled={items.length === 0}
                   onClick={() => {
-                    if (settlement.openSum > 0 && !confirm(`Es sind noch ${formatMoney(settlement.openSum)} offen. Trotzdem abschließen?`)) return;
+                    const question =
+                      items.length === 0
+                        ? "Es gibt noch keinen Kassenzettel. Runde trotzdem beenden? Ihr könnt sie später wieder öffnen."
+                        : settlement.openSum > 0
+                          ? `Es sind noch ${formatMoney(settlement.openSum)} offen. Trotzdem abschließen?`
+                          : null;
+                    if (question && !confirm(question)) return;
                     void call("", { method: "PATCH", body: { status: "closed" } });
                   }}
                 >
-                  Runde abschließen
+                  {items.length ? "Runde abschließen" : "Runde beenden"}
                 </Button>
               )}
+              <Button
+                variant="danger"
+                className="col-span-2"
+                loading={deleting}
+                onClick={async () => {
+                  if (
+                    !confirm(
+                      `Runde „${session.title}“ mit allen Nachrichten, Positionen und Fotos endgültig löschen? Das kann man nicht rückgängig machen.`,
+                    )
+                  )
+                    return;
+                  setDeleting(true);
+                  const ok = await call("", { method: "DELETE" });
+                  if (ok) router.replace("/?geloescht=1");
+                  else setDeleting(false);
+                }}
+              >
+                Runde löschen
+              </Button>
             </div>
           </Card>
         )}

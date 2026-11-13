@@ -37,7 +37,11 @@ export function Home() {
     api<{ sessions: MySession[] }>("/api/me/sessions")
       .then((r) => setMine(r.sessions))
       .catch(() => {});
-  }, []);
+    if (new URLSearchParams(window.location.search).has("geloescht")) {
+      toast("Runde gelöscht");
+      window.history.replaceState(null, "", "/");
+    }
+  }, [toast]);
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
